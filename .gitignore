@@ -5,6 +5,7 @@ env/
 *.env
 *.key
 *.pkl
+*.npy
 *.csv
 *.pyc
 *__pycache__

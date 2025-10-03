@@ -8,3 +8,6 @@ env/
 *.csv
 *.pyc
 *__pycache__
+secret/
+secrets/
+*.secret

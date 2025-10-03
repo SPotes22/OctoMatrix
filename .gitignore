@@ -11,3 +11,5 @@ env/
 secret/
 secrets/
 *.secret
+env_UnsafeApp/
+*/env_UnsafeApp/

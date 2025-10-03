@@ -13,3 +13,8 @@ secrets/
 *.secret
 env_UnsafeApp/
 */env_UnsafeApp/
+PiBackLogger/
+PiChat/
+PiMusic/
+Paranoid-Vault/
+repo-scanner/

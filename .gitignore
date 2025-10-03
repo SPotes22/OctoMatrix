@@ -1,0 +1,10 @@
+env
+.env
+env/
+*.key
+*.env
+*.key
+*.pkl
+*.csv
+*.pyc
+*__pycache__

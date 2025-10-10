@@ -1,3 +1,8 @@
+# Copyright (c) 2025 Santiago Potes Giraldo - Lead Project at - BlackByte -
+# 
+# Este software se publica bajo la Licencia de Paz Digital v1.0 (LPD).
+# Consulta el archivo LICENSE para ver el texto completo de la licencia.
+# referencia completa del pipeline [https://www.kaggle.com/code/santiagopotes/octomatrix-poc-moe-owasp]( FALTA DOCUMENTACION - Apache 2.0 -)
 # matrix_mechanic.py
 """
 MECHANIC: Analiza .pkl + .npy → Matriz de Confusión + Relaciones Editables

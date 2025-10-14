@@ -5,9 +5,68 @@ env/
 *.env
 *.key
 *.pkl
+*.npy
 *.csv
 *.pyc
 *__pycache__
 secret/
 secrets/
 *.secret
+env_UnsafeApp/
+*/env_UnsafeApp/
+PiBackLogger/
+PiChat/
+PiMusic/
+Paranoid-Vault/
+repo-scanner/
+# Secrets y configuraciones
+secrets/
+.env
+*.key
+*.pem
+*.cert
+
+# Logs
+*.log
+logs/
+kafka.log
+zookeeper.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Kafka y Docker
+data/
+kafka-data/
+zookeeper-data/
+.docker/
+
+# Archivos temporales y de desarrollo
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos específicos del proyecto (NO subir)
+quick_fix*
+restart_system*
+fix_chain.sh
+java_alternative.sh
+container_fixer.py
+
+# utils
+add_gpl_headers.sh
+

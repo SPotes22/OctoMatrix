@@ -1,0 +1,23 @@
+{
+  "mook_validation": {
+    "what_we_know": [
+      "App sirviendo en 0.0.0.0:8000",
+      "Cliente: 127.0.0.1 (local)",
+      "Recursos: / (200 OK), /favicon.ico (404)",
+      "Timing: Request/response funcionando",
+      "Stack: Python http.server"
+    ],
+    "what_we_can_infer": [
+      "App básica HTML funcionando",
+      "No hay favicon (esperado en MVP)",
+      "Logging automático activo",
+      "Red local accesible"
+    ],
+    "security_baseline": {
+      "exposure": "localhost only", 
+      "authentication": "none",
+      "input_validation": "none",
+      "threat_surface": "minimal"
+    }
+  }
+}

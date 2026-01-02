@@ -11,3 +11,12 @@ env/
 secret/
 secrets/
 *.secret
+# Python
+__pycache__/
+*.py[cod]
+
+# Modelos
+*.pkl
+models/
+!models/.gitkeep
+

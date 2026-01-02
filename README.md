@@ -1,3 +1,30 @@
+# OctoMatrix
+
+OctoMatrix is a research-oriented Machine Learning pipeline designed to detect
+malicious web payloads based on OWASP Top 10 attack patterns.
+
+## What this is
+- ML research pipeline
+- Synthetic + heuristic dataset
+- RandomForest-based classifier
+- Exportable `.pkl` model (82%+ accuracy)
+
+## What this is NOT
+- A WAF replacement
+- A production IDS
+- A real-time SOC system
+
+## Quick start
+```bash
+pip install -r requirements.txt
+python octomatrix_pipeline.py
+```
+Output
+
+* `output/security_model.pkl`
+
+* `output/training_dataset.csv`
+
 # OctoMatrix — Sistema de Detección de Ataques Web con Machine Learning
 
 OctoMatrix es un pipeline de seguridad basado en ML para la detección de ataques web
@@ -28,16 +55,27 @@ pipeline.quick_test()
 
 Estructura del proyecto
 
-Ver ARCHITECTURE.md
-
-
+```
+ARCHITECTURE.md
+LICENSEMODEL.md
+octomatrix_pipeline.py
+PIPELINE.md
+README.md
+requirements.txt
+docs/
+- informe_laboratorio.pdf
+- Manual_de_implementacion.pdf
+- Paper_Octomatrix.pdf
+    -research/
+        - sources.md
+```
 ---
 
-## 2. `octomatrix/pipeline/security_ml_pipeline.py`
+1. `octomatrix/pipeline/octomatrix_pipeline.py`
 
 Archivo principal del **pipeline de entrenamiento**.
 
-# (código completo en security_ml_pipeline.py)
+# (código completo en octomatrix_pipeline.py)
 
 
 Responsabilidades:
@@ -50,83 +88,7 @@ Responsabilidades:
 
 * Exportación del .pkl
 
-Pruebas rápidas
-
-3. octomatrix/pipeline/feature_extraction.py
-# Extrae características avanzadas (no ML)
-
-
-Responsabilidades:
-
-* Features heurísticas
-
-* Entropía
-
-* Patrones sintácticos
-
-4. octomatrix/utils/entropy.py
-# Utilidad matemática pura
-
-
-Responsabilidad:
-
-* Cálculo de entropía de Shannon
-
-* Sin dependencias del pipeline
-
-5. octomatrix/pipeline/__init__.py
-
-```
-from .security_ml_pipeline import SecurityMLPipeline
-from .feature_extraction import extract_advanced_features
-
-__all__ = ['SecurityMLPipeline', 'extract_advanced_features']
-```
-
-6. octomatrix/inference/inference_engine.py
-
-Motor de inferencia para producción / runtime.
-
-# (código completo del inference engine)
-
-
-Responsabilidades:
-
-* Cargar .pkl
-
-* Predecir eventos individuales o en batch
-
-* No entrena, solo ejecuta
-
-7. octomatrix/pipeline/export.py
-# Serialización controlada del modelo
-
-
-Responsabilidad:
-
-* Exportación limpia del modelo entrenado
-
-* Metadatos de entrenamiento
-
-8. setup.py
-```
-from setuptools import setup, find_packages
-
-setup(
-    name="octomatrix",
-    version="1.0.0",
-    packages=find_packages(),
-    install_requires=[
-        "pandas",
-        "numpy",
-        "scikit-learn",
-        "scipy"
-    ],
-    python_requires=">=3.8",
-)
-```
-
-9. requirements.txt
+2. requirements.txt
 
 ```
 pandas>=1.5.0
@@ -136,27 +98,7 @@ scipy>=1.10.0
 requests>=2.28.0
 ```
 
-10. scripts/run_pipeline.sh
-```
-#!/bin/bash
-echo "🚀 Ejecutando pipeline OctoMatrix"
-cd "$(dirname "$0")/.."
-
-python -c "
-from octomatrix.pipeline import SecurityMLPipeline
-pipeline = SecurityMLPipeline()
-pipeline.collect_kaggle_style_data()
-pipeline.train_model()
-pipeline.export_model('models')
-```
-
-11. scripts/run_inference.sh
-```
-#!/bin/bash
-echo "🤖 Inferencia OctoMatrix"
-cd "$(dirname "$0")/.."
-```
-12. PIPELINE.md
+3. PIPELINE.md
 
 Documento conceptual, no técnico.
 
@@ -172,7 +114,7 @@ Contenido:
 
 Uso
 
-13. research/kaggle_style_datasets.md
+4. research/sources.md
 # Fuentes de datos Kaggle-style
 
 
@@ -184,9 +126,8 @@ Responsabilidad:
 
 * No código
 
-14. ARCHITECTURE.md
+5. ARCHITECTURE.md
 # Arquitectura de OctoMatrix
-
 
 Describe:
 
@@ -198,7 +139,7 @@ Describe:
 
 * Separación de responsabilidades
 
-15. docs/Manual_de_implementacion.pdf
+6. docs/Manual_de_implementacion.pdf
 
 Documento paso a paso para humanos.
 
@@ -214,7 +155,7 @@ Incluye:
 
 - Personalización
 
-16. LICENSEMODEL.md
+7. LICENSEMODEL.md
 
 Modelo de licencia ética + técnica.
 
@@ -228,7 +169,7 @@ Incluye:
 
 - Responsabilidad del modificador
 
-17. .gitignore
+8. .gitignore
 
 ```
 # Python
@@ -241,7 +182,7 @@ models/
 !models/.gitkeep
 ```
 
-18. run_pipeline.py (opcional)
+9. run_pipeline.py (opcional)
 ```
 from octomatrix.pipeline.security_ml_pipeline import run_complete_pipeline
 
@@ -249,7 +190,7 @@ if __name__ == "__main__":
     run_complete_pipeline()
 ```
 
-19. agradecimientos
+10. agradecimientos
 
 - semillero de investigacion en ciberseguridad BlackByte UTP
 

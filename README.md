@@ -15,7 +15,10 @@
 > - **MoE por procedencia** (`octomatrix/moe.py`): experto REAL + experto GENERADO combinados por OR, para
 >   sumar cobertura OWASP sin que lo generado contamine (poisoning) los patrones reales. Más un
 >   **feedback de producción** (POST-TEST, `scripts/postprod.py`) con revisión humana. Ver [docs/MOE.md](docs/MOE.md).
-> - CIC-IDS2018 entra aparte, como experto de flujos para el MoE.
+> - **Experto de flujos** (`octomatrix/flows.py`): CIC-IDS2018, detector tabular de ataques de red
+>   (DoS/DDoS, fuerza bruta, botnet) que el payload HTTP no puede ver. Tercer experto del MoE.
+> - **Diversidad de benignos** (`docs/BENIGN.md`): mete tráfico real de tus apps con `--own-logs` para
+>   cerrar el hueco de generalización entre fuentes.
 
 # POC-miniMVP for BlackByte iteration
 ## 🎯 Visión General: De la Telemetría Cruda a la Inteligencia de Amenazas

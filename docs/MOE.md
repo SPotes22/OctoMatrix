@@ -68,6 +68,28 @@ Que el recall sea 1,0 sobre payloads no vistos indica que el experto generado ap
 
 **Lectura:** el MoE por procedencia cumple lo que se buscaba — el experto generado **suma** toda la cobertura OWASP que faltaba **sin** contaminar al experto real (poisoning) y sin coste de FPR apreciable. El truco está en los negativos: el experto generado se entrena con benigno sobre las mismas rutas que sus ataques, para separar por payload y no por vocabulario de ruta.
 
+## Tercer experto: FLUJOS de red (CIC-IDS2018)
+
+`octomatrix/flows.py`, `scripts/train_flows.py`. **No es texto.** Cada muestra es un flujo de red con ~78 estadísticas de CICFlowMeter.
+
+**Por qué va aparte y qué aporta:** detecta ataques de RED que el payload HTTP no puede revelar — DoS/DDoS, fuerza bruta (FTP/SSH), botnet. Un `GET /login` de una petición se ve inocente; mil por segundo desde una IP, no. Eso sólo se ve en la forma del tráfico, no en el texto. Es la división de trabajo del MoE: texto para inyección/XSS/traversal, flujos para volumen/fuerza bruta/DoS.
+
+Entrenado con los días de CIC-IDS2018 que tienen esos ataques (14-02 fuerza bruta FTP/SSH, 16-02 DoS Hulk/SlowHTTPTest), no los días web (que casi no traen muestras). Split **temporal por día** (entrena con el pasado, evalúa con el futuro), RF calibrado + umbral por FPR, artefacto con sha256.
+
+```bash
+python scripts/download_data.py --skip-http --cicids all   # o baja días sueltos
+python -m octomatrix.data.build --sources "" --cicids
+python scripts/train_flows.py --out models/flows.joblib
+```
+
+### Resultados
+
+_(se completan al terminar train_flows)_
+
+### Cómo compone con los expertos de texto (matiz honesto)
+
+Los expertos de texto y el de flujos miran **telemetría distinta**: uno la petición HTTP, el otro el flujo de red. No se combinan por-petición con un OR directo, porque una petición no es un flujo (distinta granularidad) y en inferencia puedes tener sólo una de las dos señales. La composición correcta es **a nivel de alerta**: el pipeline de texto y el de flujos corren en paralelo sobre sus streams, y hay alerta si cualquiera de los dos dispara. Un join real petición↔flujo necesitaría una clave común (timestamp + 5-tupla) que los datasets no comparten; queda fuera del alcance de este POC. Por eso `ScoreUnionEnsemble` combina los expertos de la MISMA modalidad (texto: real + generado), y el de flujos es un detector paralelo con su propio reporte.
+
 ## POST-TEST: feedback de producción (sin reentreno automático)
 
 El lazo nuevo sobre el pipeline del proyecto:

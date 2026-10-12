@@ -1,118 +1,102 @@
-# 🛡️ Security ML Pipeline: Web Attack Anomaly Detector (v1.0.0)
+# 🛡️ OctoMatrix — detección de ataques OWASP en tráfico HTTP
 
-[Python](https://www.python.org/)
-[SciKit](https://scikit-learn.org/)
-[Github](https://github.com/SPotes22/OctoMatrix)
-[kaggle](https://www.kaggle.com/code/santiagopotes/octomatrix-poc-moe-owasp)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-orange)](https://scikit-learn.org/)
 
-> **Estado (rama `development`)**: reescritura sobre datos reales.
-> - **Datos**: CSIC 2010, ECML/PKDD 2007 y los tests de regresión del OWASP CRS, unificados, limpiados
->   y deduplicados a ~75.500 peticiones (el POC entrenaba con 72 frases escritas a mano). Ver [docs/DATA.md](docs/DATA.md).
-> - **Modelo**: un único `sklearn.Pipeline` (char n-grams + regex/entropía + Random Forest) con
->   probabilidad calibrada, post-filtro regex y umbral por FPR. Ver [docs/MODEL.md](docs/MODEL.md).
-> - **Métricas WAF**: PR-AUC, recall a FPR ≤0,1%, por categoría OWASP, por fuente, latencia por request,
->   y un **set adversarial propio** de 19 categorías OWASP (`scripts/waf_report.py`). Ver [docs/METRICS.md](docs/METRICS.md).
-> - **MoE por procedencia** (`octomatrix/moe.py`): experto REAL + experto GENERADO combinados por OR, para
->   sumar cobertura OWASP sin que lo generado contamine (poisoning) los patrones reales. Más un
->   **feedback de producción** (POST-TEST, `scripts/postprod.py`) con revisión humana. Ver [docs/MOE.md](docs/MOE.md).
-> - **Experto de flujos** (`octomatrix/flows.py`): CIC-IDS2018, detector tabular de ataques de red
->   (DoS/DDoS, fuerza bruta, botnet) que el payload HTTP no puede ver. Tercer experto del MoE.
-> - **Diversidad de benignos** (`docs/BENIGN.md`): mete tráfico real de tus apps con `--own-logs` para
->   cerrar el hueco de generalización entre fuentes.
+Detector de anomalías OWASP sobre peticiones HTTP, pensado como capa heurística para un WAF o un monitor de tráfico. Clasifica una petición como **normal** o **ataque** con una probabilidad calibrada y un umbral elegido para una tasa de falsos positivos (FPR) objetivo.
 
-# POC-miniMVP for BlackByte iteration
-## 🎯 Visión General: De la Telemetría Cruda a la Inteligencia de Amenazas
+> **Qué cambió respecto al POC.** El prototipo inicial se entrenaba con **72 frases escritas a mano** y reportaba "83%" sobre un test de 15 muestras. Esta versión se entrena con **~75.500 peticiones reales** y se evalúa con métricas propias de un WAF. La historia completa (afirmación inflada → realidad) está en [`presentation/README.md`](presentation/README.md).
 
-Este proyecto implementa un **Pipeline de Machine Learning de Seguridad (SecMLOps)** *end-to-end*. Su objetivo es clasificar el tráfico de entrada (e.g., *queries* HTTP, cargas útiles Kafka) como **Normal** o **Ataque** con alta precisión, sirviendo como una capa heurística avanzada para un **Web Application Firewall (WAF)** o un monitor de tráfico en tiempo real.
+## Resultados reales
 
-Hemos priorizado una metodología **Híbrida de Detección**, combinando la potencia del **NLP (TF-IDF)** para la contextualización de tokens y la **Ingeniería de Características de Seguridad Avanzada** para capturar patrones específicos de *exploits* (el toque de alta ingeniería que lo hace robusto).
+| escenario | qué mide | resultado |
+|---|---|---|
+| in_source | dentro de las fuentes vistas | ROC-AUC **0,989** · recall **89,6 %** @FPR 1 % |
+| in_source | WAF estricto | recall **59,1 %** @FPR 0,1 % |
+| cross-source | generalización a una fuente **nueva** | ROC-AUC **0,53** (aún no generaliza) |
+| adversarial (MoE) | cobertura 19 categorías OWASP | recall **~100 %** · FPR 0,53 % |
+| flujos (CIC-IDS2018) | ataques de red (DoS, fuerza bruta) | ROC-AUC **1,00** (dataset trivialmente separable) |
 
------
+El hallazgo clave es honesto: el cuello de botella no es la cantidad de ataques, sino la **diversidad de tráfico benigno**. Detalle en [`docs/METRICS.md`](docs/METRICS.md).
 
-## 🏗️ Arquitectura del Pipeline: El Flujo TIN $\rightarrow$ TAN
+## Arquitectura — Mixture-of-Experts por procedencia
 
-El *core* del sistema se basa en una secuencia lineal y reproducible, encapsulada en la clase `SecurityMLPipeline`, garantizando que la transición del modelo de **Prototipo (P)** a **Producción Apta (PA)** sea trazable.
+Para sumar cobertura OWASP sin que los datos generados contaminen (data poisoning) los patrones reales, cada experto se entrena por separado y se combinan por **OR** (alerta si cualquiera dispara):
 
-| TIN (Tarea Inicial) | TAN (Acción Final) | Componente Clave | Proceso / Output |
-| :--- | :--- | :--- | :--- |
-| **Data Void** | **Colectar Datos 'Kaggle-Style'** | `collect_kaggle_style_data()` | Generación sintética de **OWASP Top 10** (SQLi, XSS, XXE, etc.) + Patrones **CSIC 2010**. |
-| **Dataset Crudo** | **Ingeniería de Características Híbridas** | `TfidfVectorizer` + `extract_advanced_features()` | Combina el vector **TF-IDF** (contexto semántico) con **Features Estadísticos/Heurísticos**. |
-| **Feature Matrix (X, y)** | **Entrenamiento y Validación Estratificada** | `train_model()` | Uso de **Random Forest** con `train_test_split(stratify=y)` para asegurar la representación equitativa de las clases minoritarias (*Ataque*). |
-| **Modelo Validado** | **Exportación de Artefactos PKL** | `export_model()` | Serializa el **Modelo (`RandomForest`)** y el **Vectorizador (`TfidfVectorizer`)** en un único archivo `.pkl` para un despliegue ligero en producción. |
+```
+petición HTTP ─┬─► experto REAL      (CSIC + ECML + CRS)        ─┐
+               └─► experto GENERADO  (payloads OWASP propios)   ─┤→ OR → ataque
+flujo de red  ───► experto FLUJOS    (CIC-IDS2018, DoS/brute)   ─┘  (a nivel de alerta)
+```
 
------
+Cada experto de texto es un único `sklearn.Pipeline`: TF-IDF de n-gramas de caracteres + características de seguridad (regex + entropía de Shannon) + Random Forest, con probabilidad **calibrada** (`CalibratedClassifierCV`), **post-filtro regex** (allowlist) y umbral por FPR. El artefacto se guarda con `joblib` + verificación `sha256`.
 
-## ✨ El Toque Kaggle: Ingeniería de Características Avanzada
+## Reproducir desde cero (un comando)
 
-La alta precisión del modelo se logra no solo por el TF-IDF, sino por un robusto set de **Características de Baja Latencia** que miden la "toxicidad" estructural de la entrada, permitiendo una rápida identificación en el *inferencing* de tráfico masivo (e.g., en un *consumer* Kafka).
+```bash
+git clone https://github.com/SPotes22/OctoMatrix && cd OctoMatrix
+bash reproducir.sh                 # texto (experto real + generado)
+WITH_FLOWS=1 bash reproducir.sh    # además, experto de flujos (~0,8 GB)
+```
 
-### 1\. **Métricas de Complejidad y Entropía**
+`reproducir.sh` crea el entorno, descarga las fuentes (no se versionan), unifica/limpia/particiona, entrena, ensambla el MoE y evalúa. Es idempotente.
 
-  * **Shannon Entropy (`_calculate_entropy`):** Mide la aleatoriedad y complejidad del *payload*. *Exploits* como *Buffer Overflows* o *Injection Obfuscation* tienden a elevar este valor.
-  * **Longitud y Proporción de Whitespace.**
-
-### 2\. **Heurísticas Específicas de Seguridad (Regex-Driven)**
-
-Se utilizan expresiones regulares para la detección *zero-shot* de patrones críticos, incluso antes de la clasificación ML:
-
-  * **SQL Keywords:** Cuenta de tokens como `SELECT`, `UNION`, `DROP`, `EXEC` (sin importar caso).
-  * **XSS Patterns:** Detección de `javascript:`, `<script>`, `on\w+=` (event handlers).
-  * **Path Traversal:** Detección de `../`, `..\`, `etc/passwd`, `win.ini`.
-  * **Special Characters:** Cuantificación de caracteres típicos de *injection* (`<`, `>`, `;`, `'`, `"`).
-
-### 3\. **TF-IDF (NLP Contextual)**
-
-El **TfidfVectorizer** es entrenado para capturar la importancia de *n-grams* (hasta 3-grams) en el corpus, permitiendo al modelo entender el contexto de las secuencias de *tokens* más allá de las *keywords* directas.
-
------
-
-## 🚀 Implementación y Ejecución
-
-### Requisitos Técnicos
+## Etapas del pipeline (paso a paso)
 
 ```bash
 pip install -r requirements.txt
+python scripts/download_data.py                         # 1. fuentes reales -> data/raw/
+python -m octomatrix.data.build                         # 2. unificar al esquema común
+python -m octomatrix.data.clean                         # 3. limpiar + deduplicar
+python -m octomatrix.data.splits                        # 4. splits por grupos / escenarios
+python -m octomatrix.data.adversarial                   #    set adversarial propio (19 OWASP)
+python scripts/train.py --scenario in_source --fpr 0.01 # 5. entrenar experto real
+python scripts/build_moe.py --fpr 0.01                  # 6. ensamblar MoE (+ generado)
+python scripts/waf_report.py --scenario in_source       # 7. métricas honestas
 ```
 
-### Ejecución del pipeline (Fase 0–3)
+Demo de las etapas de presentación (TRAIN · TEST · POST-TEST):
 
 ```bash
-python scripts/download_data.py        # baja las fuentes a data/raw/ (no se versiona)
-python -m octomatrix.data.build        # unifica al esquema común
-python -m octomatrix.data.clean        # limpia y deduplica -> http_clean.parquet
-python -m octomatrix.data.splits       # splits por grupos y escenarios
-python scripts/train.py --scenario in_source --fpr 0.01   # entrena el artefacto
-python scripts/evaluate.py --scenario in_source           # métricas en test
+python presentation/1_generar_modelo.py
+python presentation/2_test_modelo.py
+python presentation/3_post_training.py
 ```
 
-o todo de una: `./run_mechanic.sh in_source`.
+## Uso del modelo
 
-> El `security_ml_pipeline.py` del POC original quedó como `ThePipeLine/setup.py` (histórico).
-> El detector actual es `octomatrix/pipeline.py`: un único `sklearn.Pipeline`
-> (char n-grams + features de seguridad + Random Forest) con probabilidad calibrada,
-> post-filtro regex y umbral por FPR. Ver [docs/MODEL.md](docs/MODEL.md).
+```python
+from octomatrix.moe import ScoreUnionEnsemble
+from octomatrix.data.text import request_text
 
-### 📦 Artefacto generado
+moe = ScoreUnionEnsemble.load("models/moe")             # una vez por proceso
+texto = request_text("POST", "/login", "", "user=admin&pass=admin' OR '1'='1")
+ataque = bool(moe.predict([texto])[0])                  # True = ataque
+```
 
-`models/octomatrix.joblib`: un solo archivo con el pipeline calibrado, el post-filtro,
-el umbral y la metadata. Se acompaña de `octomatrix.joblib.sha256` (integridad) y
-`octomatrix_meta.json`. Se carga con `OctoMatrixModel.load(...)`.
+Pasos de integración (middleware Kafka/Pereira, post-entrenamiento) en [`docs/papers/Manual_de_implementacion.pdf`](docs/papers/Manual_de_implementacion.pdf).
 
------
+## Documentación
 
-## 🧪 Quick Test
+| Documento | Contenido |
+|---|---|
+| [`docs/DATA.md`](docs/DATA.md) | fuentes, esquema común, limpieza y deduplicación |
+| [`docs/MODEL.md`](docs/MODEL.md) | arquitectura del detector, calibración, post-filtro, umbral |
+| [`docs/METRICS.md`](docs/METRICS.md) | métricas WAF, set adversarial, cobertura OWASP |
+| [`docs/MOE.md`](docs/MOE.md) | MoE por procedencia, experto de flujos, feedback de producción |
+| [`docs/BENIGN.md`](docs/BENIGN.md) | cómo meter tráfico benigno propio (`--own-logs`) |
+| [`docs/papers/`](docs/papers/) | informe de laboratorio, paper IEEE y manual (PDF + fuentes) |
+| [`presentation/README.md`](presentation/README.md) | informe v1.1 vs. realidad (correcciones) |
 
-`python -m octomatrix.quick_test --model models/octomatrix.joblib` corre unos casos
-de humo contra el modelo entrenado y muestra el % de confianza real. Las etiquetas
-esperadas son:
+## Limitaciones conocidas
 
-| Path | Payload | Esperado |
-| :--- | :--- | :--- |
-| `/api/users?id=42` | — | ✅ NORMAL |
-| `/login` | `admin' OR '1'='1` | 🚨 SQL Injection |
-| `/search` | `<script>alert(1)</script>` | 🚨 XSS |
-| `/download` | `../../../etc/passwd` | 🚨 Path Traversal |
+- No generaliza aún a sitios no vistos: necesita tráfico benigno real y variado.
+- El set adversarial es **sólo evaluación**: entrenar con él inflaría el resultado por memorización.
+- CSIC marca como anómalas peticiones ilegales pero no maliciosas: hay ruido de etiqueta.
+- IDOR y escalada de privilegios son poco detectables sólo por el payload.
+- Es una **capa heurística**: no reemplaza un WAF de reglas ni validaciones determinísticas.
 
-(La tabla del POC anterior afirmaba estas detecciones pero el modelo de 72 frases
-marcaba `/api/users` como ataque al 52%. Ahora `quick_test` imprime el resultado real,
-no uno prometido.)
+---
+
+El `security_ml_pipeline.py` del POC original quedó como `ThePipeLine/setup.py` (histórico).
+Tests: `python -m pytest -q tests` (45 pruebas).

@@ -180,3 +180,37 @@ Implicaciones para la Fase 3:
 - Conseguir tráfico normal de **varios sitios**: tus apps reales vía `--own-logs`, o datasets de benignos.
 - Usar features independientes del sitio: decodificación, estructura del payload, entropía y regex, en lugar de memorizar rutas.
 - Reportar siempre los escenarios entre fuentes, no sólo `in_source`.
+
+---
+
+# Fase 0: limpieza y dataset unificado propio
+
+```bash
+python -m octomatrix.data.clean     # http_requests.parquet -> http_clean.parquet
+```
+
+`http_clean.parquet` es el dataset con el que se entrena y que se versiona como nuestro (los crudos externos siguen fuera de git). La limpieza es **conservadora y auditable**; esta es la nota que justifica cada decisión.
+
+## Qué se elimina
+
+De 88.814 filas se pasa a **75.458**:
+
+| regla | filas | por qué |
+|---|---:|---|
+| vacías | 34 | method+path+query+body con menos de 3 caracteres útiles: no hay nada que clasificar |
+| casi-duplicadas | 13.322 | se conserva una fila por grupo de casi-duplicados (`group_id`); del grupo se guarda la de texto más largo |
+
+## Qué NO se elimina, y por qué (decisión explícita)
+
+Durante el análisis se midieron dos criterios "obvios" de limpieza y **se descartaron** porque borraban ataques reales:
+
+1. **"Peticiones con forma rara" (path que no empieza por `/`, bytes de control).** Son 386 + 76 filas, y al revisarlas resultaron ser **todas ataques**: command injection tipo `..%5c../winnt/system32/cmd.exe`, path traversal, y payloads con null byte. Borrarlas habría quitado justo lo que el modelo debe detectar.
+2. **"Ataques sin firma reconocible".** Una regex de firmas marcó como "sin firma" el 82% de los ataques del CRS (que son, por definición, ataques). La regex es incompleta, no los datos. Filtrar por ahí habría vaciado la clase de ataque.
+
+## Limitación conocida: ruido de etiqueta en CSIC
+
+CSIC marca como "anómalas" peticiones que son **ilegales pero no maliciosas** (un parámetro renombrado, un valor fuera de formato como `precio=100/`). No se eliminan automáticamente porque no hay forma fiable de separarlas de los ataques reales sin la regex de firmas que ya se demostró inexacta. Queda documentado: parte de los "ataques" de CSIC es ruido, y por eso los escenarios entre fuentes (Fase 2) importan más que el rendimiento dentro de CSIC.
+
+## Sobre derechos de autor
+
+Los datos crudos de las fuentes externas **no se redistribuyen**: `data/` está en `.gitignore` y `scripts/download_data.py` los baja de su origen bajo demanda, dejando en `MANIFEST.json` el commit/sha256 exacto. Lo que versionamos es nuestro código de ingesta y limpieza; `http_clean.parquet` se regenera localmente. Las cadenas de ataque (`' OR 1=1`, `<script>…`) son hechos técnicos, no obra protegible.

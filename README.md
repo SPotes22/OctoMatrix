@@ -5,11 +5,12 @@
 [Github](https://github.com/SPotes22/OctoMatrix)
 [kaggle](https://www.kaggle.com/code/santiagopotes/octomatrix-poc-moe-owasp)
 
-> **Estado (rama `development`)**: la Fase 1 cambia el dataset de juguete (72 frases escritas a mano) por
-> datos reales: CSIC 2010, ECML/PKDD 2007 y los tests de regresión del OWASP CRS, unas 88.800 peticiones únicas
-> con un esquema común. CIC-IDS2018 entra aparte, como experto de flujos.
-> Ver [docs/DATA.md](docs/DATA.md). Las métricas y la tabla "Quick Test" de abajo son del POC anterior y
-> todavía no se han revalidado.
+> **Estado (rama `development`)**: reescritura sobre datos reales.
+> - **Datos**: CSIC 2010, ECML/PKDD 2007 y los tests de regresión del OWASP CRS, unificados, limpiados
+>   y deduplicados a ~75.500 peticiones (el POC entrenaba con 72 frases escritas a mano). Ver [docs/DATA.md](docs/DATA.md).
+> - **Modelo**: un único `sklearn.Pipeline` (char n-grams + regex/entropía + Random Forest) con
+>   probabilidad calibrada, post-filtro regex y umbral por FPR. Ver [docs/MODEL.md](docs/MODEL.md).
+> - CIC-IDS2018 entra aparte, como experto de flujos para el MoE.
 
 # POC-miniMVP for BlackByte iteration
 ## 🎯 Visión General: De la Telemetría Cruda a la Inteligencia de Amenazas
@@ -61,36 +62,49 @@ El **TfidfVectorizer** es entrenado para capturar la importancia de *n-grams* (h
 
 ### Requisitos Técnicos
 
-Asegúrate de tener las librerías necesarias instaladas:
-
 ```bash
-pip install pandas numpy scikit-learn
+pip install -r requirements.txt
 ```
 
-### Ejecución del Pipeline
-
-El archivo `security_ml_pipeline.py` está diseñado para ejecutarse directamente, iniciando todo el ciclo de vida del ML y **generando los artefactos** en la carpeta `output/`.
+### Ejecución del pipeline (Fase 0–3)
 
 ```bash
-python security_ml_pipeline.py
+python scripts/download_data.py        # baja las fuentes a data/raw/ (no se versiona)
+python -m octomatrix.data.build        # unifica al esquema común
+python -m octomatrix.data.clean        # limpia y deduplica -> http_clean.parquet
+python -m octomatrix.data.splits       # splits por grupos y escenarios
+python scripts/train.py --scenario in_source --fpr 0.01   # entrena el artefacto
+python scripts/evaluate.py --scenario in_source           # métricas en test
 ```
 
-### 📦 Artefactos Generados
+o todo de una: `./run_mechanic.sh in_source`.
 
-Tras la ejecución exitosa, la carpeta `output/` contendrá los siguientes archivos, listos para ser cargados en un entorno de producción (e.g., el **BL\_00\_7 Kafka Monitor**):
+> El `security_ml_pipeline.py` del POC original quedó como `ThePipeLine/setup.py` (histórico).
+> El detector actual es `octomatrix/pipeline.py`: un único `sklearn.Pipeline`
+> (char n-grams + features de seguridad + Random Forest) con probabilidad calibrada,
+> post-filtro regex y umbral por FPR. Ver [docs/MODEL.md](docs/MODEL.md).
 
-1.  `output/security_model.pkl`: Contiene el objeto completo del modelo (`RandomForest`) y el **Vectorizador** pre-entrenado.
-2.  `output/training_dataset.csv`: El dataset sintético completo utilizado para el entrenamiento, crucial para la **trazabilidad de QA/auditoría**.
+### 📦 Artefacto generado
+
+`models/octomatrix.joblib`: un solo archivo con el pipeline calibrado, el post-filtro,
+el umbral y la metadata. Se acompaña de `octomatrix.joblib.sha256` (integridad) y
+`octomatrix_meta.json`. Se carga con `OctoMatrixModel.load(...)`.
 
 -----
 
-## 🧪 Quick Test: Demostración de Detección
+## 🧪 Quick Test
 
-El método `quick_test()` valida la capacidad del modelo para distinguir entre tráfico legítimo y los principales vectores de ataque con alta confianza.
+`python -m octomatrix.quick_test --model models/octomatrix.joblib` corre unos casos
+de humo contra el modelo entrenado y muestra el % de confianza real. Las etiquetas
+esperadas son:
 
-| Path | Payload | Detección Esperada |
+| Path | Payload | Esperado |
 | :--- | :--- | :--- |
-| `/api/users` | `normal query` | **✅ NORMAL** |
-| `/login` | `admin' OR '1'='1` | **🚨 ATAQUE** (SQL Injection) |
-| `/search` | `<script>alert(1)</script>` | **🚨 ATAQUE** (Cross-Site Scripting) |
-| `/download` | `../../../etc/passwd` | **🚨 ATAQUE** (Path Traversal) |
+| `/api/users?id=42` | — | ✅ NORMAL |
+| `/login` | `admin' OR '1'='1` | 🚨 SQL Injection |
+| `/search` | `<script>alert(1)</script>` | 🚨 XSS |
+| `/download` | `../../../etc/passwd` | 🚨 Path Traversal |
+
+(La tabla del POC anterior afirmaba estas detecciones pero el modelo de 72 frases
+marcaba `/api/users` como ataque al 52%. Ahora `quick_test` imprime el resultado real,
+no uno prometido.)

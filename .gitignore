@@ -24,3 +24,9 @@ repo-scanner/
 /data/
 *.parquet
 .pytest_cache/
+
+# Artefactos de modelo y salidas (se regeneran con scripts/train.py)
+/models/
+/output/
+*.joblib
+*.joblib.sha256

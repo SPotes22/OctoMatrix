@@ -114,7 +114,7 @@ def test_augment_train_keeps_labels_groups_and_originals():
 
 def test_load_scenario_only_augments_train(tmp_path):
     df = _toy()
-    df.to_parquet(tmp_path / "http_requests.parquet")
+    df.to_parquet(tmp_path / "http_clean.parquet")
     splits.make_splits(df, seed=0).reset_index(drop=True).to_parquet(tmp_path / "splits.parquet")
     train, val, test = splits.load_scenario("in_source", tmp_path, augment=True, frac=1.0)
     assert train.augmented.any()

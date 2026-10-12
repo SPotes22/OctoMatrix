@@ -138,16 +138,17 @@ def load_scenario(
     processed_dir: str | Path = "data/processed",
     augment: bool = False,
     seed: int = 42,
+    dataset: str = "http_clean.parquet",
     **augment_kwargs,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Devuelve (train, val, test). Si augment=True, se aumenta SÓLO train."""
     if name not in SCENARIOS:
         raise KeyError(f"escenario desconocido: {name}. Opciones: {SCENARIOS}")
     processed_dir = Path(processed_dir)
-    df = pd.read_parquet(processed_dir / "http_requests.parquet")
+    df = pd.read_parquet(processed_dir / dataset)
     splits = pd.read_parquet(processed_dir / "splits.parquet")
     if len(splits) != len(df):
-        raise ValueError("splits.parquet no corresponde a http_requests.parquet: vuelve a correr splits")
+        raise ValueError("splits.parquet no corresponde al dataset: vuelve a correr splits: vuelve a correr splits")
     df["group_id"] = splits["group_id"].to_numpy()
     col = splits[name].to_numpy()
     train = df[col == TRAIN].reset_index(drop=True)
@@ -166,10 +167,11 @@ def load_scenario(
 def main(argv=None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--processed-dir", type=Path, default=Path("data/processed"))
+    ap.add_argument("--dataset", default="http_clean.parquet")
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args(argv)
 
-    df = pd.read_parquet(args.processed_dir / "http_requests.parquet")
+    df = pd.read_parquet(args.processed_dir / args.dataset)
     splits = make_splits(df, seed=args.seed)
     splits.reset_index(drop=True).to_parquet(args.processed_dir / "splits.parquet", index=False)
     stats = summarize(df, splits)

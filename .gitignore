@@ -5,18 +5,31 @@ env/
 *.env
 *.key
 *.pkl
+*.npy
 *.csv
 *.pyc
 *__pycache__
 secret/
 secrets/
 *.secret
-# Python
-__pycache__/
-*.py[cod]
+env_UnsafeApp/
+*/env_UnsafeApp/
+PiBackLogger/
+PiChat/
+PiMusic/
+Paranoid-Vault/
+repo-scanner/
 
-# Modelos
-*.pkl
-models/
-!models/.gitkeep
+# Datos crudos y procesados (se regeneran con scripts/download_data.py)
+/data/
+*.parquet
+.pytest_cache/
 
+# Artefactos de modelo y salidas (se regeneran con scripts/train.py)
+/models/
+/output/
+*.joblib
+*.joblib.sha256
+
+# Feedback de producción (POST-TEST)
+/data/feedback/

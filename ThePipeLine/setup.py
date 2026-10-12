@@ -1,16 +1,3 @@
-"""
-OctoMatrix Security ML Pipeline
---------------------------------
-Author: SPotes22
-Purpose:
-- Train a ML model to detect OWASP-style attacks
-- Export reproducible .pkl model
-- Research-oriented, not production hardened
-
-Warning:
-- Modifying the pipeline or poisoning the dataset
-  may reduce model confidence and accuracy.
-"""
 # security_ml_pipeline.py
 import pandas as pd
 import numpy as np
@@ -227,6 +214,7 @@ class SecurityMLPipeline:
         print(classification_report(y_test, y_pred, target_names=['Normal', 'Ataque']))
         
         self.is_trained = True
+        self.accuracy = accuracy
         return accuracy
     
     def export_model(self, output_dir="output"):
@@ -251,7 +239,7 @@ class SecurityMLPipeline:
             'metadata': {
                 'export_date': datetime.now().isoformat(),
                 'model_type': 'RandomForest',
-                'accuracy': self.model.score,
+                'accuracy': getattr(self, 'accuracy', None),  # fix auditoría: antes guardaba el método, no el número
                 'version': '1.0.0'
             }
         }

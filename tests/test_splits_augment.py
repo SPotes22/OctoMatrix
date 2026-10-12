@@ -76,6 +76,8 @@ def test_augment_transforms():
     rng = np.random.default_rng(0)
     assert augment.TRANSFORMS["url_encode"]("' or 1=1", rng) == "%27%20or%201%3D1"
     assert augment.TRANSFORMS["double_encode"]("'", rng) == "%2527"
+    assert augment.TRANSFORMS["url_encode"]("Jam%F3n", rng) == "Jam%F3n"           # bytes latin-1 intactos
+    assert augment.TRANSFORMS["url_encode"]("<ſcript>", rng) == "%3C%C5%BFcript%3E"  # fuera de latin-1 -> utf-8
     assert augment.TRANSFORMS["sql_comment"]("1 union select", rng) == "1/**/union/**/select"
     assert augment._map_values("a=1 2&b=&c", lambda v: v.upper()) == "a=1 2&b=&c"
     assert augment._map_values("a=x y&b=z", lambda v: v.upper()) == "a=X Y&b=Z"

@@ -34,7 +34,12 @@ SQL_HINT = re.compile(r"(?i)(\bunion\b|\bselect\b|\bor\b\s*['\"\d]|\band\b\s*['\
 
 
 def _encode_all(v: str) -> str:
-    return quote(decode(v, rounds=1), safe="", encoding="latin-1")
+    plain = decode(v, rounds=1)
+    try:
+        # latin-1 conserva los bytes originales (%F3 sigue siendo %F3 en CSIC)
+        return quote(plain, safe="", encoding="latin-1")
+    except UnicodeEncodeError:
+        return quote(plain, safe="", encoding="utf-8")
 
 
 def _double(v: str) -> str:

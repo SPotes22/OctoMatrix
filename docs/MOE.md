@@ -44,7 +44,29 @@ El experto generado se entrena con `payload_split='train'` y se evalúa con `'ho
 
 ### Resultados
 
-_(se completan al terminar build_moe)_
+Experto real reusado (`in_source`), experto generado con 19 categorías, ambos a FPR objetivo 1%.
+
+**Aislamiento — sobre el TEST real (`in_source`):** el experto generado no debe estropear al real.
+
+| | FPR | recall |
+|---|---:|---:|
+| experto real solo | 1,01% | 89,62% |
+| ensemble (OR) | 1,01% | 89,65% |
+
+FPR extra del generado sobre tráfico real: **+0,00%**. Aislamiento confirmado: sumar el experto generado no mueve el FPR ni el recall del real.
+
+**Ganancia — sobre el HOLDOUT generado (payloads NO vistos en entrenamiento):**
+
+| | FPR | recall |
+|---|---:|---:|
+| experto real solo | 0,55% | 12,63% |
+| ensemble (OR) | 0,70% | **100,0%** |
+
+El experto real por sí solo sólo veía el 13% de estos ataques (es el hueco de la Fase 4). El ensemble sube a **100%** de recall sobre payloads **distintos** de los de entrenamiento, con FPR 0,70%. Recall por categoría en holdout: las 19 (sqli, xss, rce, ssrf, xxe, lfi, rfi, crlf, ssti, nosqli, ldap, xpath, command_injection, deserialization, buffer_overflow, open_redirect, path_traversal, privilege_escalation, idor) a **1,0**.
+
+Que el recall sea 1,0 sobre payloads no vistos indica que el experto generado aprendió la **forma** de cada familia de ataque, no plantillas concretas. Es lo esperable: los payloads de una misma categoría comparten estructura. IDOR y privesc también salen 1,0 aquí porque el holdout los presenta como payloads; en tráfico real siguen siendo poco detectables sólo por el texto (ver Fase 4).
+
+**Lectura:** el MoE por procedencia cumple lo que se buscaba — el experto generado **suma** toda la cobertura OWASP que faltaba **sin** contaminar al experto real (poisoning) y sin coste de FPR apreciable. El truco está en los negativos: el experto generado se entrena con benigno sobre las mismas rutas que sus ataques, para separar por payload y no por vocabulario de ruta.
 
 ## POST-TEST: feedback de producción (sin reentreno automático)
 

@@ -5,6 +5,12 @@
 [Github](https://github.com/SPotes22/OctoMatrix)
 [kaggle](https://www.kaggle.com/code/santiagopotes/octomatrix-poc-moe-owasp)
 
+> **Estado (rama `development`)**: la Fase 1 cambia el dataset de juguete (72 frases escritas a mano) por
+> datos reales: CSIC 2010, ECML/PKDD 2007 y los tests de regresión del OWASP CRS, unas 88.800 peticiones únicas
+> con un esquema común. CIC-IDS2018 entra aparte, como experto de flujos.
+> Ver [docs/DATA.md](docs/DATA.md). Las métricas y la tabla "Quick Test" de abajo son del POC anterior y
+> todavía no se han revalidado.
+
 # POC-miniMVP for BlackByte iteration
 ## 🎯 Visión General: De la Telemetría Cruda a la Inteligencia de Amenazas
 

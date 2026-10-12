@@ -19,3 +19,8 @@ PiChat/
 PiMusic/
 Paranoid-Vault/
 repo-scanner/
+
+# Datos crudos y procesados (se regeneran con scripts/download_data.py)
+/data/
+*.parquet
+.pytest_cache/

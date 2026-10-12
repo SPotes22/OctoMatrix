@@ -68,6 +68,8 @@ Que el recall sea 1,0 sobre payloads no vistos indica que el experto generado ap
 
 **Lectura:** el MoE por procedencia cumple lo que se buscaba — el experto generado **suma** toda la cobertura OWASP que faltaba **sin** contaminar al experto real (poisoning) y sin coste de FPR apreciable. El truco está en los negativos: el experto generado se entrena con benigno sobre las mismas rutas que sus ataques, para separar por payload y no por vocabulario de ruta.
 
+**Umbral del experto generado: fijo en 0.5, no por cuantil de FPR.** Sus scores son bimodales (≈0 para benigno, ≈1 para ataque). Un umbral por FPR sobre benigno colapsa a ~0 y entonces dispara sobre cualquier benigno con score >0 (se vio: marcaba `/api/users?id=42` como ataque). 0.5 separa los dos modos: FPR del experto generado sobre benigno genérico **0,00%**, aislamiento intacto (ensemble FPR 0,99% = real 0,99%), adversarial recall 100% / FPR 0,53%. Los pocos benignos que quedan cerca de 0,5 (p. ej. `/eventos?categoria=rock`, score 0,57) caen con margen pequeño → el muestreo por incertidumbre los encola para revisión humana (Fase POST-TEST).
+
 ## Tercer experto: FLUJOS de red (CIC-IDS2018)
 
 `octomatrix/flows.py`, `scripts/train_flows.py`. **No es texto.** Cada muestra es un flujo de red con ~78 estadísticas de CICFlowMeter.

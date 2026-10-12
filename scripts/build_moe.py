@@ -84,12 +84,17 @@ def main() -> None:
     gen_train = pd.concat([gen_full, real_benign_train], ignore_index=True)
     gen_hold = AdversarialGenerator(seed=args.seed + 1).build(per_category=args.per_category, payload_split="holdout")
     generated = OctoMatrixModel.fit(texts(gen_train), gen_train.label.to_numpy())
-    # Umbral del experto generado: SÓLO contra benigno real (val). Eso es lo que
-    # controla su FPR sobre el tráfico que de verdad veremos. Su recall se mide
-    # después en el holdout, sin que el holdout toque el umbral (sin fuga).
-    real_benign_val = real_val[real_val.label == 0]
-    generated.set_threshold_for_fpr(texts(real_benign_val), real_benign_val.label.to_numpy(), args.fpr)
+    # Umbral del experto generado: FIJO en 0.5, no por cuantil de FPR. Sus
+    # scores son bimodales (≈0 para benigno, ≈1 para ataque), así que un umbral
+    # por FPR sobre benigno colapsa a ~0 y entonces dispara sobre cualquier
+    # benigno con score >0. 0.5 separa los dos modos de forma robusta; el FPR
+    # resultante se MIDE abajo (no se fija a ciegas).
+    from octomatrix.pipeline import Threshold
+    generated.threshold = Threshold(value=0.5, target_fpr=None)
     generated.metadata["expert"] = "generated"
+    real_benign_val = real_val[real_val.label == 0]
+    gen_fpr = float((generated.scores(texts(real_benign_val)) >= 0.5).mean())
+    print(f"experto generado: FPR sobre benigno real (val) = {gen_fpr:.4f}")
 
     # 3. Ensamblar y guardar
     ensemble = ScoreUnionEnsemble([Expert("real", real), Expert("generated", generated)])

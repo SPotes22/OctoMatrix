@@ -36,9 +36,9 @@ TESTS_SUBDIR = Path("tests/regression/tests")
 FAMILY_MAP = {
     "913": "scanner",
     "921": "protocol_attack",
-    "930": "path_traversal",
+    "930": "lfi",
     "931": "rfi",
-    "932": "command_injection",
+    "932": "rce",
     "933": "php_injection",
     "934": "generic_injection",
     "941": "xss",

@@ -92,6 +92,20 @@ class OctoMatrixModel:
         self.postfilter = postfilter or RegexPostFilter()
         self.threshold = Threshold()
         self.metadata: dict = {}
+        self._set_inference_njobs(1)
+
+    def _set_inference_njobs(self, n: int) -> None:
+        """RF con n_jobs=-1 añade ~170 ms de arranque de hilos por predicción
+        suelta; en inferencia (una petición) conviene n_jobs=1. En lote da igual."""
+        estimators = (
+            [cc.estimator for cc in self.pipeline.calibrated_classifiers_]
+            if hasattr(self.pipeline, "calibrated_classifiers_")
+            else [self.pipeline]
+        )
+        for est in estimators:
+            forest = getattr(est, "named_steps", {}).get("forest")
+            if forest is not None:
+                forest.n_jobs = n
 
     # --- entrenamiento ---
     @classmethod

@@ -10,6 +10,8 @@
 >   y deduplicados a ~75.500 peticiones (el POC entrenaba con 72 frases escritas a mano). Ver [docs/DATA.md](docs/DATA.md).
 > - **Modelo**: un único `sklearn.Pipeline` (char n-grams + regex/entropía + Random Forest) con
 >   probabilidad calibrada, post-filtro regex y umbral por FPR. Ver [docs/MODEL.md](docs/MODEL.md).
+> - **Métricas WAF**: PR-AUC, recall a FPR ≤0,1%, por categoría OWASP, por fuente, latencia por request,
+>   y un **set adversarial propio** de 19 categorías OWASP (`scripts/waf_report.py`). Ver [docs/METRICS.md](docs/METRICS.md).
 > - CIC-IDS2018 entra aparte, como experto de flujos para el MoE.
 
 # POC-miniMVP for BlackByte iteration

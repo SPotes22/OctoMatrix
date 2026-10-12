@@ -54,6 +54,20 @@ ATTACK_TYPES = {
     "ssi_injection",
     "scanner",
     "protocol_attack",
+    # Ampliación Fase 4: categorías OWASP que las fuentes externas no cubren y
+    # que aporta el set adversarial propio (octomatrix/data/adversarial.py).
+    "rce",                     # ejecución remota de código
+    "lfi",                     # local file inclusion (CRS 930)
+    "ssrf",                    # server-side request forgery
+    "xxe",                     # XML external entity
+    "deserialization",         # deserialización insegura
+    "crlf",                    # CRLF / HTTP response splitting
+    "open_redirect",           # redirección abierta
+    "ssti",                    # server-side template injection
+    "nosqli",                  # inyección NoSQL
+    "buffer_overflow",         # desbordamiento / "inserción en memoria"
+    "privilege_escalation",    # escalada de privilegios (tampering de rol)
+    "idor",                    # insecure direct object reference
 }
 
 

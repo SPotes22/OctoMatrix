@@ -214,6 +214,7 @@ class SecurityMLPipeline:
         print(classification_report(y_test, y_pred, target_names=['Normal', 'Ataque']))
         
         self.is_trained = True
+        self.accuracy = accuracy
         return accuracy
     
     def export_model(self, output_dir="output"):
@@ -238,7 +239,7 @@ class SecurityMLPipeline:
             'metadata': {
                 'export_date': datetime.now().isoformat(),
                 'model_type': 'RandomForest',
-                'accuracy': self.model.score,
+                'accuracy': getattr(self, 'accuracy', None),  # fix auditoría: antes guardaba el método, no el número
                 'version': '1.0.0'
             }
         }

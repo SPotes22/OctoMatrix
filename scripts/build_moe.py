@@ -69,16 +69,19 @@ def main() -> None:
         real = OctoMatrixModel.fit(texts(real_train), real_train.label.to_numpy())
         real.set_threshold_for_fpr(texts(real_val), real_val.label.to_numpy(), args.fpr)
 
-    # 2. Experto generado: ATAQUES generados (payloads de TRAIN) + BENIGNO REAL
-    #    como negativos. Darle benigno real NO rompe el aislamiento: el experto
-    #    real sigue intocado; sólo el experto generado aprende qué es tráfico
-    #    normal de verdad, para no marcar producción legítima como ataque. Sin
-    #    ese contexto, su umbral se iría a ~1.0 (nunca dispara) y no aportaría.
+    # 2. Experto generado. Negativos = benigno GENERADO (mismas rutas genéricas
+    #    que los ataques) + benigno REAL; positivos = ataques generados. Al ver
+    #    benigno sobre las MISMAS rutas, lo único que separa ataque de normal es
+    #    el PAYLOAD, no el vocabulario de la ruta. Sin el benigno generado, el
+    #    experto aprendía "lo que no se parece a CSIC = ataque" y disparaba sobre
+    #    cualquier tráfico benigno de otra distribución. Darle benigno real NO
+    #    rompe el aislamiento: el experto real sigue intocado.
     print("experto generado: generando train/holdout y entrenando...")
-    gen_attacks = AdversarialGenerator(seed=args.seed).build(per_category=args.per_category, payload_split="train")
-    gen_attacks = gen_attacks[gen_attacks.label == 1]
-    real_benign_train = real_train[real_train.label == 0]
-    gen_train = pd.concat([gen_attacks, real_benign_train], ignore_index=True)
+    gen_full = AdversarialGenerator(seed=args.seed).build(per_category=args.per_category, payload_split="train")
+    real_benign_train = real_train[real_train.label == 0].sample(
+        n=min(10_000, int((real_train.label == 0).sum())), random_state=args.seed
+    )
+    gen_train = pd.concat([gen_full, real_benign_train], ignore_index=True)
     gen_hold = AdversarialGenerator(seed=args.seed + 1).build(per_category=args.per_category, payload_split="holdout")
     generated = OctoMatrixModel.fit(texts(gen_train), gen_train.label.to_numpy())
     # Umbral del experto generado: SÓLO contra benigno real (val). Eso es lo que

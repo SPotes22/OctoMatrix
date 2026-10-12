@@ -66,7 +66,9 @@ Modelo real (RF calibrado), umbral fijado en validación para FPR=1%:
 | escenario | test | ROC-AUC | PR-AUC | FPR | recall |
 |---|---:|---:|---:|---:|---:|
 | `in_source` | 11.318 | 0,989 | 0,987 | 1,01% | **89,6%** |
-| `csic_ecml_to_crs` | _(pendiente)_ | | | | |
+| `csic_ecml_to_crs` | 3.368 | **0,53** | 0,86 | **100%** | 100% |
+
+El escenario entre fuentes es demoledor y confirma la Fase 2 con el modelo real: entrenado con CSIC+ECML y probado en CRS, el ROC-AUC es 0,53 (azar) y, al umbral que daba 1% de FPR en su propia validación, marca como ataque el **100%** del tráfico normal del CRS. No generaliza a una fuente nueva: aprende el "normal" de las fuentes que vio, no qué es un ataque. (El PR-AUC de 0,86 engaña porque el test es casi todo ataques; por eso la columna que importa es ROC-AUC y FPR.)
 
 Recall por tipo de ataque en `in_source` (al umbral de 1% FPR): java y session_fixation 100%, SSI 96%, XPath 93%, unspecified 94%, XSS 87%, SQLi 81%, path traversal 80%, LDAP 84%, command injection 85%. Los tipos con pocas muestras (RFI n=3, protocol n=8) no son fiables.
 

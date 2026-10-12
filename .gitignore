@@ -30,3 +30,6 @@ repo-scanner/
 /output/
 *.joblib
 *.joblib.sha256
+
+# Feedback de producción (POST-TEST)
+/data/feedback/

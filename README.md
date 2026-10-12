@@ -12,6 +12,9 @@
 >   probabilidad calibrada, post-filtro regex y umbral por FPR. Ver [docs/MODEL.md](docs/MODEL.md).
 > - **Métricas WAF**: PR-AUC, recall a FPR ≤0,1%, por categoría OWASP, por fuente, latencia por request,
 >   y un **set adversarial propio** de 19 categorías OWASP (`scripts/waf_report.py`). Ver [docs/METRICS.md](docs/METRICS.md).
+> - **MoE por procedencia** (`octomatrix/moe.py`): experto REAL + experto GENERADO combinados por OR, para
+>   sumar cobertura OWASP sin que lo generado contamine (poisoning) los patrones reales. Más un
+>   **feedback de producción** (POST-TEST, `scripts/postprod.py`) con revisión humana. Ver [docs/MOE.md](docs/MOE.md).
 > - CIC-IDS2018 entra aparte, como experto de flujos para el MoE.
 
 # POC-miniMVP for BlackByte iteration

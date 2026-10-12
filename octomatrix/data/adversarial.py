@@ -128,6 +128,20 @@ BENIGN_VALUES = [
 BENIGN_METHODS = ["GET", "GET", "GET", "POST"]
 
 
+def split_payloads(payloads: list[str], split: str) -> list[str]:
+    """Parte los payloads de una categoría en train/holdout por payload.
+
+    Así el experto generado se entrena con unos payloads y se evalúa con OTROS
+    de la misma categoría: mide si generaliza a payloads nuevos, no si memoriza.
+    "train" toma ~70% (al menos 1); "holdout" el resto; "all" todos.
+    Categorías con un solo payload van enteras a train y no aparecen en holdout.
+    """
+    if split == "all":
+        return payloads
+    cut = max(1, round(len(payloads) * 0.7))
+    return payloads[:cut] if split == "train" else payloads[cut:]
+
+
 class AdversarialGenerator:
     def __init__(self, seed: int = 42):
         self.rng = random.Random(seed)
@@ -143,14 +157,19 @@ class AdversarialGenerator:
         return HttpSample(
             method=method, path=path, query=query, body=body,
             label=int(attack_type != NORMAL), attack_type=attack_type,
-            source=SOURCE, origin_split="test", sample_id=f"{attack_type}:{i}",
+            source=SOURCE, origin_split=self._split, sample_id=f"{attack_type}:{self._split}:{i}",
         )
 
-    def build(self, per_category: int = 200, benign_ratio: float = 1.0) -> pd.DataFrame:
+    def build(self, per_category: int = 200, benign_ratio: float = 1.0, payload_split: str = "all") -> pd.DataFrame:
+        """payload_split: 'all' | 'train' | 'holdout' (ver split_payloads)."""
+        self._split = payload_split
         samples = []
         for attack_type, payloads in ATTACKS.items():
+            pool = split_payloads(payloads, payload_split)
+            if not pool:
+                continue  # categoría sin payloads en este split
             for i in range(per_category):
-                samples.append(self._emit(self.rng.choice(payloads), attack_type, i))
+                samples.append(self._emit(self.rng.choice(pool), attack_type, i))
         n_benign = int(len(samples) * benign_ratio)
         for i in range(n_benign):
             samples.append(self._emit(self.rng.choice(BENIGN_VALUES), NORMAL, i))

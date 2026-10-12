@@ -84,7 +84,20 @@ python scripts/train_flows.py --out models/flows.joblib
 
 ### Resultados
 
-_(se completan al terminar train_flows)_
+Entrenado con 240k flujos (subsample de los 2,1M de los dos días), split temporal por día, RF calibrado, umbral a FPR 1%. Test = 100k flujos (59k ataques).
+
+| | valor |
+|---|---:|
+| ROC-AUC | 1,000 |
+| PR-AUC | 1,000 |
+| recall @FPR 0,1% | 100% |
+| recall @FPR 1% | 100% |
+| latencia (lote) | 0,046 ms/flujo |
+| latencia (suelto) | 32 ms/flujo |
+
+Recall por tipo en test: DoS Hulk, DoS SlowHTTPTest y FTP bruteforce al **100%** (ssh_bruteforce quedó con 0 muestras en el test por el corte temporal del día 14; el modelo sí entrenó con él).
+
+**Matiz honesto, importante:** un ROC de 1,000 no quiere decir que hayamos resuelto la detección de intrusiones de red. CIC-IDS2018 con las features de CICFlowMeter es **conocido por ser trivialmente separable**: un DoS o una fuerza bruta tienen estadísticas de flujo extremas (duración, paquetes/s) que los delatan al instante. La literatura documenta que este dataset "se ve demasiado fácil" y tiene artefactos. La lectura correcta: el experto de flujos **cubre una familia de ataques que el experto de texto no puede ver**, y lo hace de sobra en este dataset; su rendimiento en tráfico real (con flujos más ambiguos) habría que medirlo con datos propios. No lo tomes como 100% en producción.
 
 ### Cómo compone con los expertos de texto (matiz honesto)
 

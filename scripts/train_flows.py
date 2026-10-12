@@ -71,6 +71,7 @@ def main() -> None:
 
     df = load_flows(args.processed_dir, args.max_rows)
     train, val, test = temporal_split(df)
+    test = test.reset_index(drop=True)  # scores es posicional; alinear índices
     print(f"flujos: train={len(train):,} val={len(val):,} test={len(test):,} "
           f"(ataques test={int(test.label.sum()):,})")
     print(f"tipos de ataque: {sorted(set(df[df.label==1].attack_type))}")
@@ -83,7 +84,8 @@ def main() -> None:
 
     scores = model.scores(test)
     y = test.label.to_numpy()
-    t0 = time.perf_counter(); model.scores(test.iloc[:2000]); lat = (time.perf_counter() - t0) / 2 * 1000
+    n_lat = min(2000, len(test))
+    t0 = time.perf_counter(); model.scores(test.iloc[:n_lat]); lat = (time.perf_counter() - t0) / n_lat * 1000
     report = {
         "n_test": int(len(y)), "attacks": int(y.sum()),
         "roc_auc": round(float(roc_auc_score(y, scores)), 4),

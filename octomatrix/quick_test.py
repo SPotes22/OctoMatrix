@@ -32,15 +32,14 @@ def main() -> None:
     model = OctoMatrixModel.load(args.model)
     thr = model.threshold.value
     print(f"modelo: {args.model}  umbral={thr:.3f}  (FPR objetivo={model.threshold.target_fpr})")
-    print(f"{'esperado':20s} {'veredicto':9s} {'conf':>6s}  petición")
+    print(f"{'esperado':20s} {'veredicto':9s} {'P(ataque)':>9s}  petición")
     for method, path, body, expected in CASES:
         q = path.split("?", 1)[1] if "?" in path else ""
         p = path.split("?", 1)[0]
         text = request_text(method, p, q, body)
         score = float(model.scores([text])[0])
         verdict = "🚨 ATAQUE" if score >= thr else "✅ NORMAL"
-        conf = score if score >= thr else 1 - score
-        print(f"{expected:20s} {verdict:9s} {conf:6.1%}  {method} {path} {body}".rstrip())
+        print(f"{expected:20s} {verdict:9s} {score:9.1%}  {method} {path} {body}".rstrip())
 
 
 if __name__ == "__main__":

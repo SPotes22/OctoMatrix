@@ -61,4 +61,24 @@ El RF trabaja sobre char n-grams densos, así que el espacio de features se acot
 
 ## Resultados
 
-Se añaden aquí tras correr `scripts/train.py` + `scripts/evaluate.py` en cada escenario. El diagnóstico de la Fase 2 (modelo lineal simple) ya mostró la conclusión que se espera confirmar: bien dentro de una fuente, mal entre fuentes, por falta de diversidad de tráfico normal.
+Modelo real (RF calibrado), umbral fijado en validación para FPR=1%:
+
+| escenario | test | ROC-AUC | PR-AUC | FPR | recall |
+|---|---:|---:|---:|---:|---:|
+| `in_source` | 11.318 | 0,989 | 0,987 | 1,01% | **89,6%** |
+| `csic_ecml_to_crs` | _(pendiente)_ | | | | |
+
+Recall por tipo de ataque en `in_source` (al umbral de 1% FPR): java y session_fixation 100%, SSI 96%, XPath 93%, unspecified 94%, XSS 87%, SQLi 81%, path traversal 80%, LDAP 84%, command injection 85%. Los tipos con pocas muestras (RFI n=3, protocol n=8) no son fiables.
+
+### Prueba de humo (`quick_test`)
+
+```
+esperado      veredicto  P(ataque)  petición
+normal        ✅ NORMAL     60.1%   GET /api/users?id=42
+normal/allow  ✅ NORMAL      0.0%   GET /static/js/app.js   (post-filtro)
+sqli          ✅ NORMAL     58.3%   POST /login  admin' OR '1'='1
+xss           🚨 ATAQUE     62.9%   GET /search?q=<script>alert(1)</script>
+path_trav     ✅ NORMAL     59.6%   GET /download?f=../../../etc/passwd
+```
+
+**Esto es un hallazgo, no un adorno.** Con peticiones "peladas" (rutas sueltas tipo `/login`, no `/tienda1/...` como en CSIC), el modelo deja todo apretado entre 58% y 63% de probabilidad: distingue mal porque son peticiones fuera de su distribución de entrenamiento, y al umbral de 1% FPR (0,60) varios ataques claros caen del lado normal por poco. Las features de seguridad (regex+entropía) sí disparan, pero son 19 frente a ~3.000 de TF-IDF, así que el bosque se apoya sobre todo en los char n-grams, que son específicos del sitio. Es la misma conclusión de la Fase 2 vista en el modelo real: **falta diversidad de tráfico**. Dos líneas de trabajo para después: subir el peso de las features de seguridad frente al TF-IDF, y meter tráfico normal de varios sitios (`--own-logs`).
